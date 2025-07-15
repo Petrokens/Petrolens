@@ -33,6 +33,7 @@ exports.register = async (req, res) => {
   }
 };
 
+
 // =====================
 // Login
 // =====================
@@ -180,3 +181,4 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: 'Password reset failed', details: error.message });
   }
 };
+

@@ -9,6 +9,7 @@ CREATE TABLE users (
   password VARCHAR(255) NOT NULL,
   role_id INT REFERENCES roles(id) ON DELETE SET NULL,
   refresh_token TEXT,
+  refresh_token_expires TIMESTAMP;
   reset_token VARCHAR(255),
   reset_token_expires TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
