@@ -22,12 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-./node_modules
-*.sublime-workspace
-*.sublime-project
-*.code-workspace
-*.vscode-test
-*.vscode-test-*
-*.vscode-*
-*.vscode-*
-*.vscode-test-*         
