@@ -43,14 +43,12 @@
     "vite": "^7.0.3",
     "wait-on": "^8.0.3"
   },
-  "build": {
+   "build": {
     "appId": "com.petrolenz.desktop",
     "productName": "Petrolenz",
     "directories": {
       "output": "release"
     },
-
-    
     "files": [
       "dist/**/*",
       "electron/**/*"
@@ -60,4 +58,4 @@
     }
   }
 }
-\
+

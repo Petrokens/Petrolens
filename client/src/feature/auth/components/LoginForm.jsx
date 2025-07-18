@@ -39,7 +39,7 @@ export default function LoginForm() {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="w-full max-w-md mx-auto"
+      className="w-100 max-w-md mx-auto"
     >
       <div className="rounded-[32px] bg-[#ffffffcc] dark:bg-[#1e1f3b] shadow-lg border border-white/30 dark:border-[#2a2b4f] p-10">
         {/* Logo */}

@@ -13,6 +13,7 @@ import {
   Cog, Cpu, Zap, Thermometer, Activity, RadioTower, Shield
 } from 'lucide-react';
 
+// Icon mapping
 const iconMap = {
   flame: <Flame className="w-4 h-4 mr-2" />,
   wrench: <Wrench className="w-4 h-4 mr-2" />,
@@ -46,6 +47,7 @@ const iconMap = {
   sliders: <Sliders className="w-4 h-4 mr-2" />,
 };
 
+// Returns a React element based on icon key
 const getIconComponent = (iconKey) =>
   iconMap[iconKey?.toLowerCase()] || <Layers className="w-4 h-4 mr-2" />;
 
@@ -54,6 +56,7 @@ export default function Sidebar() {
   const [sidebarSections, setSidebarSections] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
+  // Theme detection
   useEffect(() => {
     const htmlElement = document.documentElement;
     const checkDarkMode = () => {
@@ -62,18 +65,25 @@ export default function Sidebar() {
 
     checkDarkMode();
 
-    // Watch for class changes
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(htmlElement, { attributes: true, attributeFilter: ['class'] });
 
     return () => observer.disconnect();
   }, []);
 
+  // Fetch sidebar data from API
   useEffect(() => {
     const fetchSidebar = async () => {
       try {
         const data = await getSidebarData();
-        setSidebarSections(data);
+        const transformed = data.map((section) => ({
+          ...section,
+          items: section.items.map((item) => ({
+            ...item,
+            icon: getIconComponent(item.icon_key),
+          })),
+        }));
+        setSidebarSections(transformed);
       } catch (error) {
         console.error('Error fetching sidebar:', error);
       }
@@ -81,6 +91,7 @@ export default function Sidebar() {
     fetchSidebar();
   }, []);
 
+  // Logout
   const handleLogout = async () => {
     try {
       await logoutUser();
@@ -98,20 +109,17 @@ export default function Sidebar() {
         <img
           src={isDarkMode ? darkLogo : lightLogo}
           alt="Petrokens Logo"
-          className="h-15 object-contain"
+          className="h-12 object-contain"
         />
       </div>
 
-      {/* Sidebar sections */}
+      {/* Sidebar Sections */}
       <div className="flex-1 overflow-y-auto">
         {sidebarSections.map((section) => (
           <SidebarSection
             key={section.title}
             title={section.title}
-            items={section.items.map((item) => ({
-              ...item,
-              icon: getIconComponent(item.icon_key),
-            }))}
+            items={section.items}
           />
         ))}
       </div>
@@ -160,4 +168,4 @@ function renderNavLink(item) {
       {item.label}
     </NavLink>
   );
-}
+} 
