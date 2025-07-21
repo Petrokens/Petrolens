@@ -68,3 +68,15 @@ INSERT INTO sidebar_items (section_id, label, path, icon_name, display_order) VA
 INSERT INTO sidebar_items (section_id, label, path, icon_name, display_order) VALUES
 (6, 'System Status', '/dashboard/system-status', 'Server', 1),
 (6, 'Environment Config', '/dashboard/env-settings', 'Sliders', 2);
+<<<<<<< HEAD
+=======
+
+
+INSERT INTO sidebar_items (section_id, label, path, icon_name, display_order) VALUES
+(7, 'User Management', '/dashboard/users', 'Users', 1),
+(7, 'Role Management', '/dashboard/roles', 'Key', 2),
+(7, 'Access Control', '/dashboard/permissions', 'Lock', 3),
+(7, 'Audit Reports', '/dashboard/audit-reports', 'FileSearch', 4),
+(7, 'System Logs', '/dashboard/system-logs', 'FileCode', 5),
+(7, 'Create User', '/dashboard/create-user', 'UserPlus', 6);
+>>>>>>> origin/ranjith
