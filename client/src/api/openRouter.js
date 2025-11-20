@@ -1,0 +1,200 @@
+// OpenRouter API integration with multiple provider support
+
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+
+// Cheaper/free models that work with limited credits
+// Verified working models on OpenRouter
+const CHEAP_MODELS = {
+  openrouter: [
+    'meta-llama/llama-3.2-3b-instruct:free', // FREE - Most reliable
+    'mistralai/mistral-7b-instruct:free', // FREE
+    'google/gemini-flash-1.5-8b', // Low cost, if available
+    'google/gemini-pro-1.5', // Alternative Gemini
+    'openchat/openchat-7b:free', // FREE
+    'qwen/qwen-2-7b-instruct:free', // FREE
+    'gpt-3.5-turbo', // Low cost via OpenRouter
+    'anthropic/claude-3-haiku' // Low cost
+  ],
+  openai: [
+    'gpt-3.5-turbo', // Cheaper option
+    'gpt-4o-mini' // Cheaper than gpt-4
+  ],
+  anthropic: [
+    'claude-3-haiku-20240307' // Cheapest Claude model
+  ]
+};
+
+const DEFAULT_MODEL = 'meta-llama/llama-3.2-3b-instruct:free'; // FREE and reliable
+const DEFAULT_MAX_TOKENS = 2000; // Reduced from 8000 to fit free tier
+
+/**
+ * Call OpenRouter API for AI QC analysis
+ */
+export async function callOpenRouterAPI(prompt, fileContent = '', apiKey, options = {}) {
+  if (!apiKey) {
+    throw new Error('API key is required. Please set it in .env file or settings.');
+  }
+
+  const model = options.model || DEFAULT_MODEL;
+  const maxTokens = options.maxTokens || DEFAULT_MAX_TOKENS;
+  const provider = options.provider || 'openrouter';
+
+  // Limit file content to reduce token usage
+  const contentLimit = options.contentLimit || 20000; // Reduced from 50000
+  const limitedContent = fileContent ? fileContent.substring(0, contentLimit) : '';
+
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are an expert QA/QC Engineer with 40+ years of experience in EPC projects. Provide detailed, structured QA/QC analysis in the requested format. Be concise but thorough.'
+    },
+    {
+      role: 'user',
+      content: limitedContent 
+        ? `${prompt}\n\nDocument Content (first ${contentLimit} chars):\n${limitedContent}`
+        : prompt
+    }
+  ];
+
+  try {
+    let response;
+    
+    if (provider === 'openai' && apiKey.startsWith('sk-') && !apiKey.startsWith('sk-or-')) {
+      // Direct OpenAI API
+      response = await fetch(OPENAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model || 'gpt-3.5-turbo',
+          messages: messages,
+          temperature: 0.3,
+          max_tokens: maxTokens
+        })
+      });
+    } else if (provider === 'anthropic' && apiKey.startsWith('sk-ant-')) {
+      // Direct Anthropic API
+      response = await fetch(ANTHROPIC_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: model || 'claude-3-haiku-20240307',
+          max_tokens: maxTokens,
+          messages: messages
+        })
+      });
+    } else {
+      // OpenRouter API (default)
+      response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Petrolenz QC Platform'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: 0.3,
+          max_tokens: maxTokens
+        })
+      });
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || `API request failed with status ${response.status}`;
+      
+      // Handle model not found errors
+      if (errorMessage.includes('No endpoints found') || errorMessage.includes('model not found') || errorMessage.includes('not available')) {
+        throw new Error(
+          `Model "${model}" not available.\n\n` +
+          `Please try one of these free models:\n` +
+          `- ${CHEAP_MODELS.openrouter[0]}\n` +
+          `- ${CHEAP_MODELS.openrouter[1]}\n` +
+          `- ${CHEAP_MODELS.openrouter[2]}\n\n` +
+          `Or check available models at: https://openrouter.ai/models`
+        );
+      }
+      
+      // Handle credit/token limit errors
+      if (errorMessage.includes('credits') || errorMessage.includes('tokens')) {
+        throw new Error(
+          `Insufficient credits. ${errorMessage}\n\n` +
+          `Solutions:\n` +
+          `1. Reduce max_tokens (currently ${maxTokens})\n` +
+          `2. Use a free model: ${CHEAP_MODELS.openrouter[0]}\n` +
+          `3. Add credits at https://openrouter.ai/settings/credits`
+        );
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    
+    // Handle different response formats
+    let content;
+    if (provider === 'anthropic') {
+      content = data.content?.[0]?.text || data.content || '';
+    } else {
+      content = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+    }
+    
+    if (!content) {
+      throw new Error('Invalid API response format - no content received');
+    }
+
+    return content;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get API key from environment or localStorage
+ */
+export function getAPIKey() {
+  // First try environment variable (set in .env file)
+  const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  if (envKey) return envKey;
+
+  // Fallback to localStorage (user can set it in UI)
+  const storedKey = localStorage.getItem('openrouter_api_key');
+  return storedKey || null;
+}
+
+/**
+ * Save API key to localStorage
+ */
+export function saveAPIKey(apiKey) {
+  localStorage.setItem('openrouter_api_key', apiKey);
+}
+
+/**
+ * Get available cheap/free models
+ */
+export function getCheapModels(provider = 'openrouter') {
+  return CHEAP_MODELS[provider] || CHEAP_MODELS.openrouter;
+}
+
+/**
+ * Detect API provider from key format
+ */
+export function detectProvider(apiKey) {
+  if (!apiKey) return 'openrouter';
+  if (apiKey.startsWith('sk-ant-')) return 'anthropic';
+  if (apiKey.startsWith('sk-') && !apiKey.startsWith('sk-or-')) return 'openai';
+  return 'openrouter';
+}
+
