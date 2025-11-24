@@ -41,22 +41,48 @@ export async function callOpenRouterAPI(prompt, fileContent = '', apiKey, option
   const maxTokens = options.maxTokens || DEFAULT_MAX_TOKENS;
   const provider = options.provider || 'openrouter';
 
-  // Limit file content to reduce token usage
-  const contentLimit = options.contentLimit || 20000; // Reduced from 50000
-  const limitedContent = fileContent ? fileContent.substring(0, contentLimit) : '';
+  // Support chunked content for large documents
+  // If fileContent is an array, it's chunks; otherwise use full content
+  let contentToSend = '';
+  
+  if (Array.isArray(fileContent)) {
+    // Multiple chunks - combine intelligently
+    contentToSend = fileContent.join('\n\n--- Next Section ---\n\n');
+  } else if (fileContent) {
+    // Single content or full document
+    // Use larger limit for better analysis (100K chars)
+    const contentLimit = options.contentLimit || 100000;
+    contentToSend = fileContent.length > contentLimit 
+      ? fileContent.substring(0, contentLimit) + '\n\n[Note: Content truncated to first ' + contentLimit + ' characters]'
+      : fileContent;
+  }
 
-  const messages = [
-    {
-      role: 'system',
-      content: 'You are an expert QA/QC Engineer with 40+ years of experience in EPC projects. Provide detailed, structured QA/QC analysis in the requested format. Be concise but thorough.'
-    },
-    {
-      role: 'user',
-      content: limitedContent 
-        ? `${prompt}\n\nDocument Content (first ${contentLimit} chars):\n${limitedContent}`
-        : prompt
-    }
-  ];
+  // Build messages array - support conversation history for chat
+  const messages = [];
+  
+  // Add system prompt (use provided or default)
+  const systemPrompt = options.systemPrompt || 
+    'You are an expert QA/QC Engineer with 40+ years of experience in EPC projects. Provide detailed, structured QA/QC analysis in the requested format. Be concise but thorough.';
+  
+  messages.push({
+    role: 'system',
+    content: systemPrompt
+  });
+  
+  // Add conversation history if provided (for chat)
+  if (options.conversationHistory && Array.isArray(options.conversationHistory)) {
+    messages.push(...options.conversationHistory);
+  }
+  
+  // Add current user message
+  const userMessage = contentToSend
+    ? `${prompt}\n\nDocument Content:\n${contentToSend}`
+    : prompt;
+  
+  messages.push({
+    role: 'user',
+    content: userMessage
+  });
 
   try {
     let response;
@@ -162,16 +188,22 @@ export async function callOpenRouterAPI(prompt, fileContent = '', apiKey, option
 }
 
 /**
- * Get API key from environment or localStorage
+ * Get API key from environment, localStorage, or default hardcoded key
  */
 export function getAPIKey() {
+  // Default hardcoded API key (user's key)
+  const DEFAULT_API_KEY = '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';
+  
   // First try environment variable (set in .env file)
   const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
   if (envKey) return envKey;
 
   // Fallback to localStorage (user can set it in UI)
   const storedKey = localStorage.getItem('openrouter_api_key');
-  return storedKey || null;
+  if (storedKey) return storedKey;
+
+  // Use default hardcoded key
+  return DEFAULT_API_KEY;
 }
 
 /**

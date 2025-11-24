@@ -16,17 +16,28 @@ export function FileUpload({ onFileSelect, disabled = false }) {
       return false;
     }
 
-    // Check file type
+    // Check file type - support all engineering file types
+    const fileName = file.name.toLowerCase();
     const isValidType = 
       file.type === FILE_TYPES.PDF ||
       file.type === FILE_TYPES.DOCX ||
       file.type === FILE_TYPES.DOC ||
-      file.name.toLowerCase().endsWith('.pdf') ||
-      file.name.toLowerCase().endsWith('.docx') ||
-      file.name.toLowerCase().endsWith('.doc');
+      file.type === FILE_TYPES.XLSX ||
+      file.type === FILE_TYPES.XLS ||
+      file.type === FILE_TYPES.TXT ||
+      file.type === FILE_TYPES.RTF ||
+      fileName.endsWith('.pdf') ||
+      fileName.endsWith('.docx') ||
+      fileName.endsWith('.doc') ||
+      fileName.endsWith('.xlsx') ||
+      fileName.endsWith('.xls') ||
+      fileName.endsWith('.txt') ||
+      fileName.endsWith('.rtf') ||
+      fileName.endsWith('.dwg') ||
+      fileName.endsWith('.dxf');
 
     if (!isValidType) {
-      setError('Invalid file type. Please upload PDF or Word documents only.');
+      setError('Invalid file type. Please upload engineering documents (PDF, Word, Excel, CAD, Text files).');
       return false;
     }
 
@@ -84,7 +95,7 @@ export function FileUpload({ onFileSelect, disabled = false }) {
         <input
           type="file"
           id="file-upload"
-          accept=".pdf,.doc,.docx"
+          accept=".pdf,.doc,.docx,.xlsx,.xls,.txt,.rtf,.dwg,.dxf"
           onChange={handleChange}
           disabled={disabled}
           style={{ display: 'none' }}
@@ -95,7 +106,7 @@ export function FileUpload({ onFileSelect, disabled = false }) {
             <strong>Click to upload</strong> or drag and drop
           </div>
           <div className="upload-hint">
-            PDF or Word documents (Max {MAX_FILE_SIZE / (1024 * 1024)}MB)
+            Engineering documents: PDF, Word, Excel, CAD, Text (Max {MAX_FILE_SIZE / (1024 * 1024)}MB)
           </div>
         </label>
       </div>

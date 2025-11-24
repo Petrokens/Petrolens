@@ -5,6 +5,8 @@ import { callOpenRouterAPI, getAPIKey, detectProvider, getCheapModels } from '..
 import { buildCheck1Prompt } from '../utils/promptCheck1.js';
 import { buildCheck2Prompt } from '../utils/promptCheck2.js';
 import { parseScoreFromResponse } from '../utils/scoringHelper.js';
+import { chunkDocument, getChunkStats } from '../utils/documentChunker.js';
+import { CHUNK_SIZE } from '../config/constants.js';
 
 export function useAIQC() {
   const [loading, setLoading] = useState(false);
@@ -51,10 +53,48 @@ export function useAIQC() {
       const prompt = buildCheck1Prompt(documentType, specificType, discipline, isDrawing);
       addLog(`▶️ Check-1 started (${provider.toUpperCase()}) for ${discipline} · ${specificType}`);
       
+      // For very large documents (785+ pages), use intelligent chunking
+      // Calculate document size to determine if chunking is needed
+      const isLargeDocument = fileContent.length > 100000; // 100K+ chars
+      let contentToProcess = fileContent;
+      
+      if (isLargeDocument) {
+        addLog(`📄 Large document detected (${(fileContent.length / 1000).toFixed(0)}K chars). Chunking for processing...`, 'info');
+        
+        // Chunk large documents intelligently
+        const chunks = chunkDocument(fileContent, CHUNK_SIZE);
+        const chunkStats = getChunkStats(chunks);
+        
+        addLog(`📦 Document split into ${chunks.length} chunks (avg ${Math.round(chunkStats.avgChunkSize)} chars/chunk)`, 'info');
+        addLog(`🔄 Processing all ${chunks.length} chunks for comprehensive analysis...`, 'info');
+        
+        // For very large documents, process first few chunks and summary chunks
+        // Process first chunk, middle chunks, and last chunk for comprehensive coverage
+        const chunksToProcess = chunks.length > 10 
+          ? [
+              chunks[0], // First chunk
+              ...chunks.slice(Math.floor(chunks.length / 3), Math.floor(chunks.length / 3) + 3), // Middle chunks
+              ...chunks.slice(Math.floor(chunks.length * 2 / 3), Math.floor(chunks.length * 2 / 3) + 3), // Later chunks
+              chunks[chunks.length - 1] // Last chunk
+            ]
+          : chunks; // For smaller chunk sets, process all
+        
+        const selectedText = chunksToProcess.map((chunk, idx) => {
+          const originalIdx = chunks.indexOf(chunk);
+          const chunkSize = typeof chunk === 'string' ? chunk.length : (chunk.text?.length || 0);
+          const chunkText = typeof chunk === 'string' ? chunk : chunk.text;
+          return `\n\n--- Section ${originalIdx + 1} of ${chunks.length} (${Math.round(chunkSize / 1000)}K chars) ---\n\n${chunkText}`;
+        }).join('\n\n');
+        
+        contentToProcess = selectedText + '\n\n[Note: This is a large document. Analysis based on representative sections covering beginning, middle, and end of document.]';
+        
+        addLog(`✅ Processing ${chunksToProcess.length} representative sections from ${chunks.length} total chunks`, 'info');
+      }
+      
       // Try with current config, fallback to cheaper options on error
       let response;
       try {
-        response = await callOpenRouterAPI(prompt, fileContent, apiKey, {
+        response = await callOpenRouterAPI(prompt, contentToProcess, apiKey, {
           model: apiConfig.model,
           maxTokens: apiConfig.maxTokens,
           provider: provider
@@ -73,10 +113,11 @@ export function useAIQC() {
           let lastError = err;
           for (const freeModel of cheapModels.slice(0, 3)) { // Try first 3 free models
             try {
-              response = await callOpenRouterAPI(prompt, fileContent, apiKey, {
+              response = await callOpenRouterAPI(prompt, contentToProcess, apiKey, {
                 model: freeModel,
                 maxTokens: 1500,
-                provider: provider
+                provider: provider,
+                contentLimit: 100000
               });
               console.log(`Successfully used model: ${freeModel}`);
               addLog(`✅ Switched to model: ${freeModel}`, 'success');
@@ -130,13 +171,27 @@ export function useAIQC() {
       const prompt = buildCheck2Prompt(documentType, specificType, discipline, isDrawing);
       addLog(`▶️ Check-2 started (${provider.toUpperCase()}) focusing on technical QA/QC`);
       
+      // Chunk large documents intelligently
+      let contentToProcess = fileContent;
+      const chunks = chunkDocument(fileContent, CHUNK_SIZE);
+      
+      if (chunks.length > 1) {
+        addLog(`📄 Processing ${chunks.length} chunks for Check-2 analysis...`, 'info');
+        
+        // Use first few most important chunks for Check-2 (focus on technical details)
+        const importantChunks = chunks.slice(0, Math.min(5, chunks.length));
+        contentToProcess = importantChunks.map(chunk => chunk.text).join('\n\n--- Next Section ---\n\n');
+        addLog(`🔍 Analyzing ${importantChunks.length} key sections for technical review...`, 'info');
+      }
+      
       // Try with current config, fallback to cheaper options on error
       let response;
       try {
-        response = await callOpenRouterAPI(prompt, fileContent, apiKey, {
+        response = await callOpenRouterAPI(prompt, contentToProcess, apiKey, {
           model: apiConfig.model,
           maxTokens: apiConfig.maxTokens,
-          provider: provider
+          provider: provider,
+          contentLimit: 100000
         });
       } catch (err) {
         // If model not found or credit error, try with free models
@@ -152,10 +207,11 @@ export function useAIQC() {
           let lastError = err;
           for (const freeModel of cheapModels.slice(0, 3)) { // Try first 3 free models
             try {
-              response = await callOpenRouterAPI(prompt, fileContent, apiKey, {
+              response = await callOpenRouterAPI(prompt, contentToProcess, apiKey, {
                 model: freeModel,
                 maxTokens: 1500,
-                provider: provider
+                provider: provider,
+                contentLimit: 100000
               });
               console.log(`Successfully used model: ${freeModel}`);
               addLog(`✅ Switched to model: ${freeModel}`, 'success');

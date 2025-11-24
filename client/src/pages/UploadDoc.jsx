@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { FileUpload } from '../components/Upload/FileUpload.jsx';
 import { DocumentMeta } from '../components/Upload/DocumentMeta.jsx';
+import { ReadingProgress } from '../components/Upload/ReadingProgress.jsx';
+import { DocumentTextViewer } from '../components/Upload/DocumentTextViewer.jsx';
 import { DisciplineSelector } from '../components/Dashboard/DisciplineSelector.jsx';
 import { Loader } from '../components/Common/Loader.jsx';
 import { APISettings } from '../components/Common/APISettings.jsx';
@@ -40,23 +42,65 @@ export function UploadDoc() {
   const [documentType, setDocumentType] = useState(null);
   const [processing, setProcessing] = useState(false);
 
-  const { readFile, content, loading: fileLoading } = useFileReader();
+  const { 
+    readFile, 
+    content, 
+    extractedText,
+    loading: fileLoading, 
+    error: fileError,
+    progress: readingProgress,
+    isAIProcessing,
+    setIsAIProcessing,
+    reset: resetFileReader
+  } = useFileReader();
   const { runBothChecks, loading: aiLoading, error: aiError, apiConfig, updateConfig, logs, clearLogs } = useAIQC();
   const [showSettings, setShowSettings] = useState(false);
+  const [engineeringError, setEngineeringError] = useState(null);
+  const [aiProcessedLines, setAIProcessedLines] = useState(0);
 
   const handleFileSelect = async (file) => {
     setSelectedFile(file);
     setProcessing(true);
+    setEngineeringError(null);
+    setDocumentType(null);
     
     try {
-      // Read file content
+      // Read file content with progress tracking
       const fileContent = await readFile(file);
       
-      // Classify document
-      const classification = await classifyDocument(file.name, fileContent || '');
-      setDocumentType(classification);
+      if (!fileContent) {
+        // Check for file reading errors
+        if (fileError) {
+          setEngineeringError(fileError);
+          setSelectedFile(null);
+        }
+        return;
+      }
+      
+      // Classify document (this will validate if it's an engineering document)
+      try {
+        const classification = await classifyDocument(file.name, fileContent || '');
+        setDocumentType(classification);
+        setEngineeringError(null);
+      } catch (classifyError) {
+        if (classifyError.message === 'NOT_ENGINEERING_DOCUMENT') {
+          const errorMsg = 'This document does not appear to be an engineering document. Please upload engineering-related documents only (e.g., drawings, specifications, calculations, datasheets, P&IDs, isometrics, etc.).';
+          setEngineeringError(errorMsg);
+          setSelectedFile(null);
+          resetFileReader(); // Clear extracted text and content
+        } else {
+          console.error('Error classifying document:', classifyError);
+          setEngineeringError('Failed to classify document. Please try again.');
+        }
+      }
     } catch (error) {
       console.error('Error processing file:', error);
+      if (error.message && error.message.includes('engineering document')) {
+        setEngineeringError(error.message);
+        setSelectedFile(null);
+      } else {
+        setEngineeringError('Failed to process file. Please try again.');
+      }
     } finally {
       setProcessing(false);
     }
@@ -84,11 +128,27 @@ export function UploadDoc() {
     }
 
     setProcessing(true);
+    setIsAIProcessing(true);
+    // Calculate how many lines AI will process (up to content limit)
+    const lines = content.split('\n').filter(line => line.trim().length > 0);
+    const totalLinesToProcess = Math.min(lines.length, Math.ceil(20000 / 50)); // Based on content limit
+    setAIProcessedLines(0);
 
     try {
       clearLogs();
       const isDrawing = documentType?.type === 'Drawing';
       const specificType = documentType?.specificType || 'General';
+
+      // Simulate line-by-line AI processing (show progress)
+      const simulateAIProcessing = async () => {
+        for (let i = 0; i <= totalLinesToProcess; i += 10) {
+          setAIProcessedLines(Math.min(i, totalLinesToProcess));
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+      };
+
+      // Start simulation
+      simulateAIProcessing();
 
       const results = await runBothChecks(
         documentType?.type || 'Document',
@@ -97,6 +157,9 @@ export function UploadDoc() {
         isDrawing,
         content
       );
+
+      // Mark all lines as processed
+      setAIProcessedLines(totalLinesToProcess);
 
       // Calculate combined score
       const combinedScore = results.check1.score !== null && results.check2.score !== null
@@ -125,6 +188,7 @@ export function UploadDoc() {
       alert(error.message || 'Failed to run QC analysis. Please check your API key configuration.');
     } finally {
       setProcessing(false);
+      setIsAIProcessing(false);
     }
   };
 
@@ -189,7 +253,7 @@ export function UploadDoc() {
               1. Upload Deliverable
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Supported formats: PDF, DOC, DOCX (max 10 MB)
+              Supported formats: PDF, DOC, DOCX, XLSX, XLS, TXT, RTF, DWG, DXF (max 50 MB)
             </Typography>
             <FileUpload
               onFileSelect={handleFileSelect}
@@ -217,8 +281,57 @@ export function UploadDoc() {
                 </Stack>
               </Paper>
             )}
+
+            {/* Engineering Document Validation Error */}
+            {engineeringError && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                  Document Validation Failed
+                </Typography>
+                <Typography variant="body2">
+                  {engineeringError}
+                </Typography>
+              </Alert>
+            )}
+
+            {/* File Reading Error */}
+            {fileError && !engineeringError && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                  File Reading Error
+                </Typography>
+                <Typography variant="body2">
+                  {fileError}
+                </Typography>
+              </Alert>
+            )}
+
+            {/* Reading Progress Indicator */}
+            {(readingProgress.isReading || readingProgress.totalPages > 0) && (
+              <ReadingProgress
+                currentPage={readingProgress.currentPage}
+                totalPages={readingProgress.totalPages}
+                isReading={readingProgress.isReading}
+                currentLine={readingProgress.currentLine}
+                totalLines={readingProgress.totalLines}
+                status={readingProgress.status}
+              />
+            )}
           </Paper>
         </Grid>
+
+        {/* Document Text Viewer */}
+        {extractedText && extractedText.trim().length > 0 && !engineeringError && (
+          <Grid item xs={12}>
+            <DocumentTextViewer 
+              text={extractedText} 
+              isReading={readingProgress.isReading}
+              currentReadingLine={readingProgress.currentLine}
+              isAIProcessing={isAIProcessing}
+              aiProcessedLines={aiProcessedLines}
+            />
+          </Grid>
+        )}
 
         <Grid item xs={12}>
           <Paper sx={{ p: 3, mb: 3 }}>

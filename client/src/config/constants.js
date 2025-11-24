@@ -53,8 +53,52 @@ export const SOURCE_BASIS = {
 export const FILE_TYPES = {
   PDF: 'application/pdf',
   DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  DOC: 'application/msword'
+  DOC: 'application/msword',
+  XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  XLS: 'application/vnd.ms-excel',
+  DWG: 'application/acad',
+  DXF: 'image/vnd.dxf',
+  TXT: 'text/plain',
+  RTF: 'application/rtf'
 };
 
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+// Maximum pages to read from documents (set to null for unlimited)
+export const MAX_PAGES_TO_READ = null; // null = unlimited, set number to limit
+
+// Chunking configuration for large documents
+export const CHUNK_SIZE = 15000; // Characters per chunk for AI processing
+export const CHUNK_OVERLAP = 500; // Overlap between chunks to maintain context
+
+// OCR Configuration
+export const OCR_CONFIG = {
+  lang: 'eng',
+  workerPath: 'https://unpkg.com/tesseract.js@5.0.4/dist/worker.min.js',
+  corePath: 'https://unpkg.com/tesseract.js-core@5.0.0/tesseract-core.wasm.js'
+};
+
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+// Engineering document validation keywords
+export const ENGINEERING_KEYWORDS = [
+  // Disciplines
+  'process', 'piping', 'civil', 'structural', 'mechanical', 'electrical', 
+  'instrumentation', 'hse', 'hvac', 'telecom', 'pipeline',
+  // Drawing types
+  'p&id', 'pid', 'pfd', 'process flow diagram', 'isometric', 'iso', 
+  'general arrangement', 'ga drawing', 'layout', 'sld', 'single line diagram',
+  'loop diagram', 'wiring diagram', 'instrumentation drawing',
+  // Document types
+  'specification', 'spec', 'datasheet', 'data sheet', 'calculation', 'cal',
+  'design basis', 'philosophy', 'report', 'load list', 'instrument index',
+  'boq', 'bill of quantities', 'mto', 'material take off', 'line list',
+  'cable schedule', 'tbe', 'technical bid evaluation', 'material requisition',
+  'vendor data', 'hookup', 'skid', 'package',
+  // Engineering terms
+  'engineering', 'drawing', 'dwg', 'deliverable', 'qa/qc', 'qaqc',
+  'epc', 'project', 'construction', 'commissioning', 'operation',
+  'piping', 'valve', 'pump', 'vessel', 'tank', 'heat exchanger',
+  'stress', 'analysis', 'design', 'review', 'approval', 'revision',
+  'document number', 'title block', 'ifr', 'ifa', 'ifc', 'as built',
+  'engineering document', 'technical document'
+];
 

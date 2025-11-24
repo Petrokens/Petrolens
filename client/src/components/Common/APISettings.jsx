@@ -4,10 +4,21 @@ import { useState, useEffect } from 'react';
 import { getCheapModels, detectProvider } from '../../api/openRouter.js';
 import './APISettings.css';
 
+import { getAPIKey } from '../../api/openRouter.js';
+
 export function APISettings({ apiConfig, onConfigChange, onClose }) {
   const [localConfig, setLocalConfig] = useState(apiConfig);
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('openrouter_api_key') || import.meta.env.VITE_OPENROUTER_API_KEY || '';
+    // Get current API key (includes default hardcoded key)
+    const currentKey = getAPIKey();
+    // Only show user-set keys, not the default
+    const storedKey = localStorage.getItem('openrouter_api_key');
+    return storedKey || import.meta.env.VITE_OPENROUTER_API_KEY || '';
+  });
+  const [usingDefaultKey, setUsingDefaultKey] = useState(() => {
+    const storedKey = localStorage.getItem('openrouter_api_key');
+    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    return !storedKey && !envKey; // Using default if no stored or env key
   });
 
   useEffect(() => {
@@ -32,13 +43,27 @@ export function APISettings({ apiConfig, onConfigChange, onClose }) {
         
         <div className="settings-section">
           <label>API Key:</label>
+          {usingDefaultKey && (
+            <div style={{ 
+              padding: '8px', 
+              backgroundColor: '#e3f2fd', 
+              borderRadius: '4px', 
+              marginBottom: '8px',
+              fontSize: '0.875rem'
+            }}>
+              ✓ Using default API key (configured in code)
+            </div>
+          )}
           <input
             type="password"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter your API key"
+            onChange={(e) => {
+              setApiKey(e.target.value);
+              setUsingDefaultKey(false);
+            }}
+            placeholder={usingDefaultKey ? "Leave empty to use default key" : "Enter your API key"}
           />
-          <small>Detected provider: {provider}</small>
+          <small>Detected provider: {provider} {usingDefaultKey && '(using default key)'}</small>
         </div>
 
         <div className="settings-section">

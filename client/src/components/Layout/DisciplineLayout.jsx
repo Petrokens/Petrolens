@@ -16,6 +16,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import { AIChat } from '../Chat/AIChat.jsx';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard' },
@@ -132,6 +133,9 @@ export function DisciplineLayout({ children }) {
       <Container maxWidth="xl" component="main" sx={{ py: 4 }}>
         {children}
       </Container>
+      
+      {/* AI Chat Assistant */}
+      <AIChat />
     </Box>
   );
 }
