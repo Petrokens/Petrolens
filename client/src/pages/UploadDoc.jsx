@@ -250,7 +250,22 @@ export function UploadDoc() {
         <Grid item xs={12}>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-              1. Upload Deliverable
+              1. Document Metadata
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Ensure the title, document number, revision, and status match the control register.
+            </Typography>
+            <DocumentMeta
+              onMetaChange={setDocumentMeta}
+              disabled={isProcessing}
+            />
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              2. Upload Deliverable
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Supported formats: PDF, DOC, DOCX, XLSX, XLS, TXT, RTF, DWG, DXF (max 50 MB)
@@ -336,28 +351,9 @@ export function UploadDoc() {
         <Grid item xs={12}>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-              2. Document Metadata
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Ensure the title, document number, revision, and status match the control register.
-            </Typography>
-            <DocumentMeta
-              onMetaChange={setDocumentMeta}
-              disabled={isProcessing}
-            />
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-              Workflow Checklist
+              3. Workflow Checklist
             </Typography>
             <Stack spacing={2} divider={<Divider flexItem />}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography>AI Provider</Typography>
-                <Chip label={apiConfig.provider?.toUpperCase() || 'OpenRouter'} color="primary" variant="outlined" />
-              </Stack>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography>Model</Typography>
                 <Chip label={apiConfig.model || 'Auto (free-tier)'} />
@@ -385,7 +381,7 @@ export function UploadDoc() {
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-              3. Execute QA/QC Analysis
+              4. Execute QA/QC Analysis
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               The platform performs Check-1 (QA/QC) and Check-2 (Technical) reviews automatically.

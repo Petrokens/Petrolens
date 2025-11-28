@@ -1,7 +1,7 @@
 // Report generator utilities for PDF and Word
 
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 
 /**
@@ -20,49 +20,79 @@ export async function generatePDFReport({
   disclaimer
 }) {
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595, 842]); // A4 size
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  let page = pdfDoc.addPage([595, 842]); // A4 size
+  const font = await pdfDoc.embedFont(StandardFonts.Courier);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.CourierBold);
 
   let y = 800;
   const margin = 50;
-  const lineHeight = 20;
+  const lineHeight = 16;
   const pageHeight = 792;
+  const maxWidth = 595 - margin * 2;
 
-  // Helper function to add text with page break
-  const addText = (text, size = 12, isBold = false, color = rgb(0, 0, 0)) => {
+  const wrapText = (text, size, useBoldFont = false) => {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    const currentFont = useBoldFont ? boldFont : font;
+
+    words.forEach(word => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const testWidth = currentFont.widthOfTextAtSize(testLine, size);
+      if (testWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    return lines.length ? lines : [''];
+  };
+
+  const ensureSpace = () => {
     if (y < margin + lineHeight) {
-      const newPage = pdfDoc.addPage([595, 842]);
+      page = pdfDoc.addPage([595, 842]);
       y = pageHeight;
     }
-    page.drawText(text, {
-      x: margin,
-      y: y,
-      size: size,
-      font: isBold ? boldFont : font,
-      color: color
+  };
+
+  const addText = (text, size = 11, isBold = false, color = rgb(0, 0, 0)) => {
+    const lines = wrapText(text, size, isBold);
+    lines.forEach(line => {
+      ensureSpace();
+      page.drawText(line, {
+        x: margin,
+        y: y,
+        size: size,
+        font: isBold ? boldFont : font,
+        color: color
+      });
+      y -= lineHeight;
     });
-    y -= lineHeight;
   };
 
   // Title
-  addText('QC REPORT', 20, true);
-  y -= 10;
+  addText('QC REPORT', 18, true);
+  y -= 6;
 
   // Document Info
   if (documentMeta) {
-    addText('Document Information:', 14, true);
-    addText(`Title: ${documentMeta.title || 'N/A'}`, 12);
-    addText(`Number: ${documentMeta.documentNumber || 'N/A'}`, 12);
-    addText(`Revision: ${documentMeta.revision || 'N/A'}`, 12);
-    addText(`Status: ${documentMeta.status || 'N/A'}`, 12);
-    addText(`Discipline: ${discipline || 'N/A'}`, 12);
-    addText(`Type: ${documentType || 'N/A'}`, 12);
-    y -= 10;
+    addText('Document Information:', 13, true);
+    addText(`Title: ${documentMeta.title || 'N/A'}`, 11);
+    addText(`Number: ${documentMeta.documentNumber || 'N/A'}`, 11);
+    addText(`Revision: ${documentMeta.revision || 'N/A'}`, 11);
+    addText(`Status: ${documentMeta.status || 'N/A'}`, 11);
+    addText(`Discipline: ${discipline || 'N/A'}`, 11);
+    addText(`Type: ${documentType || 'N/A'}`, 11);
+    y -= 6;
   }
 
   // Scores
-  addText('Quality Scores:', 14, true);
+  addText('Quality Scores:', 13, true);
   if (check1Score !== null) {
     addText(`Check-1 (QA/QC): ${formatScore(check1Score)}`, 12);
   }
@@ -160,23 +190,51 @@ export async function generateWordReport({
   disclaimer
 }) {
   const children = [];
+  const MONO_FONT = 'Courier New';
+  const BODY_SIZE = 22; // 11pt (docx uses half-points)
+
+  const createParagraph = ({
+    text,
+    heading,
+    spacing,
+    bold = false,
+    italics = false,
+    size = BODY_SIZE
+  }) =>
+    new Paragraph({
+      heading,
+      spacing,
+      children: [
+        new TextRun({
+          text,
+          bold,
+          italics,
+          font: MONO_FONT,
+          size
+        })
+      ]
+    });
 
   // Title
   children.push(
-    new Paragraph({
+    createParagraph({
       text: 'QC REPORT',
       heading: HeadingLevel.TITLE,
-      spacing: { after: 400 }
+      spacing: { after: 400 },
+      bold: true,
+      size: 32
     })
   );
 
   // Document Information
   if (documentMeta) {
     children.push(
-      new Paragraph({
+      createParagraph({
         text: 'Document Information',
         heading: HeadingLevel.HEADING_1,
-        spacing: { after: 200 }
+        spacing: { after: 200 },
+        bold: true,
+        size: 26
       })
     );
 
@@ -191,7 +249,7 @@ export async function generateWordReport({
 
     metaInfo.forEach(info => {
       children.push(
-        new Paragraph({
+        createParagraph({
           text: info,
           spacing: { after: 100 }
         })
@@ -201,16 +259,18 @@ export async function generateWordReport({
 
   // Scores
   children.push(
-    new Paragraph({
+    createParagraph({
       text: 'Quality Scores',
       heading: HeadingLevel.HEADING_1,
-      spacing: { before: 400, after: 200 }
+      spacing: { before: 400, after: 200 },
+      bold: true,
+      size: 26
     })
   );
 
   if (check1Score !== null) {
     children.push(
-      new Paragraph({
+      createParagraph({
         text: `Check-1 (QA/QC): ${formatScore(check1Score)}`,
         spacing: { after: 100 }
       })
@@ -219,7 +279,7 @@ export async function generateWordReport({
 
   if (check2Score !== null) {
     children.push(
-      new Paragraph({
+      createParagraph({
         text: `Check-2 (Technical): ${formatScore(check2Score)}`,
         spacing: { after: 100 }
       })
@@ -228,20 +288,16 @@ export async function generateWordReport({
 
   if (combinedScore !== null) {
     children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Overall Score: ${formatScore(combinedScore)}`,
-            bold: true
-          })
-        ],
+      createParagraph({
+        text: `Overall Score: ${formatScore(combinedScore)}`,
+        bold: true,
         spacing: { after: 100 }
       })
     );
 
     if (scoreCategory) {
       children.push(
-        new Paragraph({
+        createParagraph({
           text: `Category: ${scoreCategory.label}`,
           spacing: { after: 200 }
         })
@@ -252,10 +308,12 @@ export async function generateWordReport({
   // Check-1 Results
   if (check1Result) {
     children.push(
-      new Paragraph({
+      createParagraph({
         text: 'Check-1: QA/QC Review Results',
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 }
+        spacing: { before: 400, after: 200 },
+        bold: true,
+        size: 26
       })
     );
 
@@ -264,10 +322,10 @@ export async function generateWordReport({
     lines.forEach(line => {
       if (line.trim()) {
         children.push(
-          new Paragraph({
-            text: line,
-            spacing: { after: 100 }
-          })
+        createParagraph({
+          text: line,
+          spacing: { after: 100 }
+        })
         );
       }
     });
@@ -276,10 +334,12 @@ export async function generateWordReport({
   // Check-2 Results
   if (check2Result) {
     children.push(
-      new Paragraph({
+      createParagraph({
         text: 'Check-2: Technical Review Results',
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 }
+        spacing: { before: 400, after: 200 },
+        bold: true,
+        size: 26
       })
     );
 
@@ -288,10 +348,10 @@ export async function generateWordReport({
     lines.forEach(line => {
       if (line.trim()) {
         children.push(
-          new Paragraph({
-            text: line,
-            spacing: { after: 100 }
-          })
+        createParagraph({
+          text: line,
+          spacing: { after: 100 }
+        })
         );
       }
     });
@@ -300,42 +360,40 @@ export async function generateWordReport({
   // Consolidated Score
   if (combinedScore !== null) {
     children.push(
-      new Paragraph({
+      createParagraph({
         text: 'Consolidated Overall Score',
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 }
+        spacing: { before: 400, after: 200 },
+        bold: true,
+        size: 26
       })
     );
 
     children.push(
-      new Paragraph({
+      createParagraph({
         text: `Check-1 Score: ${formatScore(check1Score)}`,
         spacing: { after: 100 }
       })
     );
 
     children.push(
-      new Paragraph({
+      createParagraph({
         text: `Check-2 Score: ${formatScore(check2Score)}`,
         spacing: { after: 100 }
       })
     );
 
     children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Overall Score: ${formatScore(combinedScore)}`,
-            bold: true
-          })
-        ],
+      createParagraph({
+        text: `Overall Score: ${formatScore(combinedScore)}`,
+        bold: true,
         spacing: { after: 100 }
       })
     );
 
     if (scoreCategory) {
       children.push(
-        new Paragraph({
+        createParagraph({
           text: `Category: ${scoreCategory.label}`,
           spacing: { after: 200 }
         })
@@ -346,22 +404,20 @@ export async function generateWordReport({
   // Disclaimer
   if (disclaimer) {
     children.push(
-      new Paragraph({
+      createParagraph({
         text: 'Disclaimer',
         heading: HeadingLevel.HEADING_2,
-        spacing: { before: 400, after: 200 }
+        spacing: { before: 400, after: 200 },
+        bold: true,
+        size: 24
       })
     );
 
     children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: disclaimer,
-            italics: true,
-            size: 18 // 9pt in half-points
-          })
-        ],
+      createParagraph({
+        text: disclaimer,
+        italics: true,
+        size: 18,
         spacing: { after: 200 }
       })
     );

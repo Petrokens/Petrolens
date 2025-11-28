@@ -4,6 +4,33 @@ import { classifyDocumentType } from '../config/documentTypes.js';
 import { ENGINEERING_KEYWORDS, MAX_PAGES_TO_READ } from '../config/constants.js';
 import { extractTextWithOCR, hasSelectableText, terminateOCRWorker } from './ocrProcessor.js';
 
+const PAGE_LIMIT = typeof MAX_PAGES_TO_READ === 'number' && MAX_PAGES_TO_READ > 0
+  ? MAX_PAGES_TO_READ
+  : Infinity;
+
+async function loadPdfJs() {
+  try {
+    const pdfjsLib = await import('pdfjs-dist');
+    return { pdfjsLib, workerPath: 'pdfjs-dist/build/pdf.worker.min.js' };
+  } catch (error) {
+    console.error('Failed to load pdfjs-dist module:', error);
+    return { pdfjsLib: null, workerPath: null };
+  }
+}
+
+function configurePdfWorker(pdfjsLib, workerPath) {
+  if (!pdfjsLib?.GlobalWorkerOptions || !workerPath) return;
+
+  try {
+    const workerUrl = new URL(workerPath, import.meta.url);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl.toString();
+  } catch (error) {
+    console.warn('Falling back to CDN worker due to URL error:', error);
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      `https://unpkg.com/pdfjs-dist@${pdfjsLib.version || '4.4.168'}/${workerPath}`;
+  }
+}
+
 /**
  * Validate if document is an engineering document
  */
@@ -112,8 +139,7 @@ export async function extractTextFromFile(file, onProgress = null) {
  */
 async function extractTextFromPDF(file, onProgress = null) {
   try {
-    // Dynamic import with error handling
-    const pdfjsLib = await import('pdfjs-dist').catch(() => null);
+    const { pdfjsLib, workerPath } = await loadPdfJs();
     
     if (!pdfjsLib) {
       console.warn('pdfjs-dist not available, using filename for classification');
@@ -121,10 +147,7 @@ async function extractTextFromPDF(file, onProgress = null) {
       return file.name;
     }
 
-    // Set worker if needed
-    if (pdfjsLib.GlobalWorkerOptions) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-    }
+    configurePdfWorker(pdfjsLib, workerPath);
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -312,8 +335,9 @@ async function extractTextFromTextFile(file, onProgress = null) {
     
     // Estimate page count (rough: 50 lines per page)
     const lines = text.split('\n');
-    const estimatedPages = Math.max(1, Math.min(MAX_PAGES_TO_READ, Math.ceil(lines.length / 50)));
-    const linesToRead = Math.min(lines.length, estimatedPages * 50);
+    const rawEstimatedPages = Math.max(1, Math.ceil(lines.length / 50));
+    const estimatedPages = PAGE_LIMIT === Infinity ? rawEstimatedPages : Math.max(1, Math.min(PAGE_LIMIT, rawEstimatedPages));
+    const linesToRead = PAGE_LIMIT === Infinity ? lines.length : Math.min(lines.length, estimatedPages * 50);
     const truncatedLines = lines.slice(0, linesToRead);
     const finalText = truncatedLines.join('\n');
     
@@ -361,14 +385,15 @@ async function extractTextFromDocx(file, onProgress = null) {
     const text = result.value || '';
     
     // Estimate page count (rough: 500 words per page), limit to MAX_PAGES_TO_READ
-    const wordCount = text.split(/\s+/).length;
-    const estimatedPages = Math.min(MAX_PAGES_TO_READ, Math.max(1, Math.ceil(wordCount / 500)));
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    const rawEstimatedPages = Math.max(1, Math.ceil(wordCount / 500));
+    const estimatedPages = PAGE_LIMIT === Infinity ? rawEstimatedPages : Math.max(1, Math.min(PAGE_LIMIT, rawEstimatedPages));
     
     // Report progress line-by-line for DOCX
     if (onProgress) {
       const lines = text.split('\n');
       let accumulatedText = '';
-      const maxLines = Math.min(lines.length, estimatedPages * 50); // Limit to reasonable number
+      const maxLines = PAGE_LIMIT === Infinity ? lines.length : Math.min(lines.length, estimatedPages * 50);
       
       // Report line-by-line progress
       for (let i = 0; i < maxLines; i++) {

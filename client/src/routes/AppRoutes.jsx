@@ -10,6 +10,7 @@ import { UploadDoc } from '../pages/UploadDoc.jsx';
 import { QCReport } from '../pages/QCReport.jsx';
 import { Reports } from '../pages/Reports.jsx';
 import { History } from '../pages/History.jsx';
+import { QwenChat } from '../pages/QwenChat.jsx';
 
 function ProtectedRoute({ children, requireAdmin = false }) {
   const { user, isAdmin, loading } = useAuth();
@@ -90,6 +91,17 @@ export function AppRoutes() {
           <ProtectedRoute>
             <LayoutWrapper>
               <History />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <LayoutWrapper>
+              <QwenChat />
             </LayoutWrapper>
           </ProtectedRoute>
         }

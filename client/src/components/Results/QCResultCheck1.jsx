@@ -1,10 +1,15 @@
 // Check-1 Results Component
 
-import { FormattedCheck1Table } from './FormattedTable.jsx';
 import './Results.css';
 
 export function QCResultCheck1({ result, score }) {
   if (!result) return null;
+
+  const getText = () => {
+    if (!result) return '';
+    if (typeof result === 'string') return result;
+    return result.response || JSON.stringify(result, null, 2);
+  };
 
   const formatScore = (score) => {
     if (score === null || score === undefined) return 'N/A';
@@ -20,7 +25,9 @@ export function QCResultCheck1({ result, score }) {
         </div>
       )}
       <div className="result-content">
-        <FormattedCheck1Table result={result} />
+        <pre className="result-text">
+{getText()}
+        </pre>
       </div>
     </div>
   );

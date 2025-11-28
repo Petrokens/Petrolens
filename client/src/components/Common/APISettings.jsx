@@ -1,10 +1,8 @@
 // API Settings Component for configuring API options
 
 import { useState, useEffect } from 'react';
-import { getCheapModels, detectProvider } from '../../api/openRouter.js';
+import { getCheapModels, detectProvider, testAPIKey, getAPIKey as getCurrentAPIKey } from '../../api/openRouter.js';
 import './APISettings.css';
-
-import { getAPIKey } from '../../api/openRouter.js';
 
 export function APISettings({ apiConfig, onConfigChange, onClose }) {
   const [localConfig, setLocalConfig] = useState(apiConfig);
@@ -20,6 +18,8 @@ export function APISettings({ apiConfig, onConfigChange, onClose }) {
     const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     return !storedKey && !envKey; // Using default if no stored or env key
   });
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
 
   useEffect(() => {
     setLocalConfig(apiConfig);
@@ -31,6 +31,26 @@ export function APISettings({ apiConfig, onConfigChange, onClose }) {
       localStorage.setItem('openrouter_api_key', apiKey);
     }
     if (onClose) onClose();
+  };
+
+  const handleTestKey = async () => {
+    setTesting(true);
+    setTestResult(null);
+    
+    try {
+      // Use the key from input, or fallback to current key
+      const keyToTest = apiKey || getCurrentAPIKey();
+      const result = await testAPIKey(keyToTest);
+      setTestResult(result);
+    } catch (error) {
+      setTestResult({
+        valid: false,
+        message: `Test failed: ${error.message}`,
+        provider: detectProvider(apiKey || getCurrentAPIKey())
+      });
+    } finally {
+      setTesting(false);
+    }
   };
 
   const provider = detectProvider(apiKey);
@@ -54,16 +74,49 @@ export function APISettings({ apiConfig, onConfigChange, onClose }) {
               ✓ Using default API key (configured in code)
             </div>
           )}
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => {
-              setApiKey(e.target.value);
-              setUsingDefaultKey(false);
-            }}
-            placeholder={usingDefaultKey ? "Leave empty to use default key" : "Enter your API key"}
-          />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setUsingDefaultKey(false);
+                setTestResult(null); // Clear test result when key changes
+              }}
+              placeholder={usingDefaultKey ? "Leave empty to use default key" : "Enter your API key"}
+              style={{ flex: 1 }}
+            />
+            <button
+              onClick={handleTestKey}
+              disabled={testing}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: testing ? 'not-allowed' : 'pointer',
+                fontSize: '0.875rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {testing ? 'Testing...' : 'Test Key'}
+            </button>
+          </div>
           <small>Detected provider: {provider} {usingDefaultKey && '(using default key)'}</small>
+          {testResult && (
+            <div style={{
+              marginTop: '8px',
+              padding: '8px',
+              backgroundColor: testResult.valid ? '#e8f5e9' : '#ffebee',
+              borderRadius: '4px',
+              fontSize: '0.875rem',
+              whiteSpace: 'pre-wrap',
+              color: testResult.valid ? '#2e7d32' : '#c62828'
+            }}>
+              {testResult.message}
+            </div>
+          )}
         </div>
 
         <div className="settings-section">

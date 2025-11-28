@@ -26,8 +26,8 @@ const CHEAP_MODELS = {
   ]
 };
 
-const DEFAULT_MODEL = 'meta-llama/llama-3.2-3b-instruct:free'; // FREE and reliable
-const DEFAULT_MAX_TOKENS = 2000; // Reduced from 8000 to fit free tier
+const DEFAULT_MODEL = 'openai/gpt-4o'; // Premium default model
+const DEFAULT_MAX_TOKENS = 200000; // Reduced from 8000 to fit free tier
 
 /**
  * Call OpenRouter API for AI QC analysis
@@ -140,6 +140,28 @@ export async function callOpenRouterAPI(prompt, fileContent = '', apiKey, option
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData.error?.message || `API request failed with status ${response.status}`;
       
+      // Handle authentication/user not found errors
+      if (errorMessage.includes('User not found') || 
+          errorMessage.includes('user not found') ||
+          errorMessage.includes('Invalid API key') ||
+          errorMessage.includes('invalid api key') ||
+          errorMessage.includes('Unauthorized') ||
+          response.status === 401 ||
+          response.status === 403) {
+        throw new Error(
+          `API Key Authentication Failed.\n\n` +
+          `The API key is invalid, expired, or the user account doesn't exist.\n\n` +
+          `Solutions:\n` +
+          `1. Check your API key in API Settings (⚙️ button)\n` +
+          `2. Get a new API key from:\n` +
+          `   - OpenRouter: https://openrouter.ai/keys\n` +
+          `   - OpenAI: https://platform.openai.com/api-keys\n` +
+          `   - Anthropic: https://console.anthropic.com/\n` +
+          `3. Clear localStorage and use a fresh key\n` +
+          `4. If using default key, it may have expired - set your own key`
+        );
+      }
+      
       // Handle model not found errors
       if (errorMessage.includes('No endpoints found') || errorMessage.includes('model not found') || errorMessage.includes('not available')) {
         throw new Error(
@@ -192,7 +214,7 @@ export async function callOpenRouterAPI(prompt, fileContent = '', apiKey, option
  */
 export function getAPIKey() {
   // Default hardcoded API key (user's key)
-  const DEFAULT_API_KEY = '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';
+  const DEFAULT_API_KEY = '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';
   
   // First try environment variable (set in .env file)
   const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -228,5 +250,64 @@ export function detectProvider(apiKey) {
   if (apiKey.startsWith('sk-ant-')) return 'anthropic';
   if (apiKey.startsWith('sk-') && !apiKey.startsWith('sk-or-')) return 'openai';
   return 'openrouter';
+}
+
+/**
+ * Test API key by making a simple request
+ * Returns { valid: boolean, message: string, provider: string }
+ */
+export async function testAPIKey(apiKey) {
+  if (!apiKey) {
+    return {
+      valid: false,
+      message: 'No API key provided',
+      provider: null
+    };
+  }
+
+  const provider = detectProvider(apiKey);
+  
+  try {
+    // Make a minimal test request
+    const testPrompt = 'Say "OK" if you can read this.';
+    const response = await callOpenRouterAPI(
+      testPrompt,
+      '',
+      apiKey,
+      {
+        model: provider === 'openrouter' ? DEFAULT_MODEL : null,
+        maxTokens: 10,
+        provider: provider
+      }
+    );
+
+    return {
+      valid: true,
+      message: `✅ API key is valid! (${provider.toUpperCase()})`,
+      provider: provider,
+      testResponse: response
+    };
+  } catch (error) {
+    let message = error.message;
+    
+    // Provide specific guidance based on error
+    if (error.message.includes('API Key Authentication Failed') ||
+        error.message.includes('User not found') ||
+        error.message.includes('Invalid API key') ||
+        error.message.includes('Unauthorized')) {
+      message = `❌ API key is invalid or expired.\n\n${error.message}`;
+    } else if (error.message.includes('credits') || error.message.includes('tokens')) {
+      message = `⚠️ API key is valid but has insufficient credits.\n\n${error.message}`;
+    } else {
+      message = `❌ API key test failed: ${error.message}`;
+    }
+
+    return {
+      valid: false,
+      message: message,
+      provider: provider,
+      error: error.message
+    };
+  }
 }
 

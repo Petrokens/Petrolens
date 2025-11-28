@@ -113,9 +113,20 @@ Be helpful, concise, and professional. If asked about specific documents, provid
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Chat error:', error);
+      // Format error message - if it already contains helpful guidance, use it as-is
+      let errorContent = error.message;
+      
+      // If it's a generic error, add helpful context
+      if (!error.message.includes('API Key') && 
+          !error.message.includes('Solutions:') && 
+          !error.message.includes('Please try')) {
+        errorContent = `Sorry, I encountered an error: ${error.message}\n\n` +
+          `Please check your API key configuration in API Settings (⚙️ button) or try again later.`;
+      }
+      
       const errorMessage = {
         role: 'assistant',
-        content: `Sorry, I encountered an error: ${error.message}. Please check your API key configuration or try again later.`,
+        content: errorContent,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);

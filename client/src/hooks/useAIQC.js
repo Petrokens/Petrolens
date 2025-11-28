@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { callOpenRouterAPI, getAPIKey, detectProvider, getCheapModels } from '../api/openRouter.js';
-import { buildCheck1Prompt } from '../utils/promptCheck1.js';
-import { buildCheck2Prompt } from '../utils/promptCheck2.js';
+import { buildUnifiedPrompt } from '../utils/promptUnified.js';
 import { parseScoreFromResponse } from '../utils/scoringHelper.js';
 import { chunkDocument, getChunkStats } from '../utils/documentChunker.js';
 import { CHUNK_SIZE } from '../config/constants.js';
@@ -50,7 +49,7 @@ export function useAIQC() {
       }
 
       const provider = detectProvider(apiKey);
-      const prompt = buildCheck1Prompt(documentType, specificType, discipline, isDrawing);
+      const prompt = buildUnifiedPrompt(documentType, specificType, discipline, isDrawing, 'check1');
       addLog(`▶️ Check-1 started (${provider.toUpperCase()}) for ${discipline} · ${specificType}`);
       
       // For very large documents (785+ pages), use intelligent chunking
@@ -168,7 +167,7 @@ export function useAIQC() {
       }
 
       const provider = detectProvider(apiKey);
-      const prompt = buildCheck2Prompt(documentType, specificType, discipline, isDrawing);
+      const prompt = buildUnifiedPrompt(documentType, specificType, discipline, isDrawing, 'check2');
       addLog(`▶️ Check-2 started (${provider.toUpperCase()}) focusing on technical QA/QC`);
       
       // Chunk large documents intelligently

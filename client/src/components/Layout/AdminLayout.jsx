@@ -22,7 +22,8 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard' },
   { label: 'Upload Document', path: '/upload' },
   { label: 'History', path: '/history' },
-  { label: 'QC Reports', path: '/reports' }
+  { label: 'QC Reports', path: '/reports' },
+  { label: 'Qwen Chat', path: '/chat' }
 ];
 
 export function AdminLayout({ children }) {
@@ -32,12 +33,13 @@ export function AdminLayout({ children }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  const isActive = (path) => location.pathname === path;
+  const currentTabIndex = NAV_ITEMS.findIndex(item => isActive(item.path));
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
-
-  const isActive = (path) => location.pathname === path;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -90,7 +92,7 @@ export function AdminLayout({ children }) {
             </Stack>
           </Toolbar>
           <Tabs
-            value={NAV_ITEMS.findIndex(item => isActive(item.path))}
+            value={currentTabIndex === -1 ? false : currentTabIndex}
             onChange={(e, idx) => navigate(NAV_ITEMS[idx].path)}
             variant={isMobile ? 'scrollable' : 'standard'}
             scrollButtons
