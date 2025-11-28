@@ -1,27 +1,38 @@
-// Discipline Selector Component
+// Professional Discipline Selector Component with Material UI
 
 import { DISCIPLINES } from '../../config/constants.js';
-import './Dashboard.css';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box
+} from '@mui/material';
 
 export function DisciplineSelector({ selectedDiscipline, onSelect, disabled = false }) {
   return (
-    <div className="discipline-selector">
-      <label htmlFor="discipline-select">Select Discipline:</label>
-      <select
-        id="discipline-select"
-        value={selectedDiscipline || ''}
-        onChange={(e) => onSelect(e.target.value)}
-        disabled={disabled}
-        className="discipline-select"
-      >
-        <option value="">-- Select Discipline --</option>
-        {DISCIPLINES.map((discipline) => (
-          <option key={discipline} value={discipline}>
-            {discipline}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Box sx={{ width: '100%', maxWidth: 400 }}>
+      <FormControl fullWidth size="medium">
+        <InputLabel id="discipline-select-label">Select Discipline</InputLabel>
+        <Select
+          labelId="discipline-select-label"
+          id="discipline-select"
+          value={selectedDiscipline || ''}
+          onChange={(e) => onSelect(e.target.value)}
+          disabled={disabled}
+          label="Select Discipline"
+        >
+          <MenuItem value="">
+            <em>-- Select Discipline --</em>
+          </MenuItem>
+          {DISCIPLINES.map((discipline) => (
+            <MenuItem key={discipline} value={discipline}>
+              {discipline}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Box>
   );
 }
 

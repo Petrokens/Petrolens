@@ -5,10 +5,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import Container from '@mui/material/Container';
 import IconButton from '@mui/material/IconButton';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -23,7 +21,7 @@ const NAV_ITEMS = [
   { label: 'Upload Document', path: '/upload' },
   { label: 'History', path: '/history' },
   { label: 'My Reports', path: '/reports' },
-  { label: 'Qwen Chat', path: '/chat' }
+  { label: 'Petro Pilot', path: '/chat' }
 ];
 
 export function DisciplineLayout({ children }) {
@@ -45,38 +43,76 @@ export function DisciplineLayout({ children }) {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar
         position="sticky"
-        color="transparent"
+        color="default"
         elevation={0}
         sx={{
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(15,15,40,0.08)',
-          background:
-            'linear-gradient(120deg, rgba(11,94,215,0.08), rgba(255,255,255,0.9))'
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
         }}
       >
         <Container maxWidth="xl">
-          <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', px: 0 }}>
+          <Toolbar
+            disableGutters
+            sx={{
+              minHeight: { xs: 64, md: 72 },
+              display: 'flex',
+              gap: 2,
+              alignItems: 'center'
+            }}
+          >
             <Stack direction="row" spacing={2} alignItems="center">
-              <Avatar
+              <Box
+                component="img"
+                src="/logo.png"
+                alt="Petrolenz logo"
                 sx={{
-                  bgcolor: 'secondary.main',
-                  width: 48,
                   height: 48,
-                  fontWeight: 700,
-                  fontSize: 18,
+                  width: 48,
+                  objectFit: 'contain',
                 }}
-              >
-                PZ
-              </Avatar>
+              />
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  Petrolenz QC Platform
+                  Petrolenz
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {user?.discipline || 'Discipline'} workspace
-                </Typography>
+               
               </Box>
             </Stack>
+
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: 'flex',
+                justifyContent: { xs: 'flex-end', md: 'center' },
+              }}
+            >
+              <Tabs
+                value={currentTabIndex === -1 ? false : currentTabIndex}
+                onChange={(e, idx) => navigate(NAV_ITEMS[idx].path)}
+                variant={isMobile ? 'scrollable' : 'standard'}
+                scrollButtons
+                allowScrollButtonsMobile
+                sx={{
+                  minHeight: 48,
+                  '& .MuiTab-root': {
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    minHeight: 48,
+                    fontSize: '0.95rem'
+                  },
+                  '& .MuiTabs-indicator': {
+                    height: 3,
+                    borderRadius: 3
+                  }
+                }}
+              >
+                {NAV_ITEMS.map(item => (
+                  <Tab key={item.path} label={item.label} />
+                ))}
+              </Tabs>
+            </Box>
+
             <Stack direction="row" spacing={2} alignItems="center">
               <Box sx={{ textAlign: 'right' }}>
                 <Typography variant="body2" color="text.secondary">
@@ -91,46 +127,8 @@ export function DisciplineLayout({ children }) {
               </IconButton>
             </Stack>
           </Toolbar>
-          <Tabs
-            value={currentTabIndex === -1 ? false : currentTabIndex}
-            onChange={(e, idx) => navigate(NAV_ITEMS[idx].path)}
-            variant={isMobile ? 'scrollable' : 'standard'}
-            scrollButtons
-            allowScrollButtonsMobile
-            sx={{
-              mt: 1,
-              minHeight: 56,
-              '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 56 },
-              '& .MuiTabs-indicator': { height: 4, borderRadius: 2 }
-            }}
-          >
-            {NAV_ITEMS.map(item => (
-              <Tab key={item.path} label={item.label} />
-            ))}
-          </Tabs>
         </Container>
       </AppBar>
-
-      <Box
-        sx={{
-          background: 'linear-gradient(135deg, rgba(11,94,215,0.12), rgba(255,255,255,0.04))',
-          borderBottom: '1px solid rgba(11,94,215,0.1)'
-        }}
-      >
-        <Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 } }}>
-          <Stack spacing={2}>
-            <Typography variant="h3" fontWeight={700}>
-              {user?.discipline || 'Discipline'} Operations
-            </Typography>
-            <Typography variant="h6" color="text.secondary">
-              Petrolenz QC Platform · Track deliverables, run AI QC, and review history
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Signed in as {user?.username || 'User'} · {user?.email || 'user@petrolenz.com'}
-            </Typography>
-          </Stack>
-        </Container>
-      </Box>
 
       <Container maxWidth="xl" component="main" sx={{ py: 4 }}>
         {children}

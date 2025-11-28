@@ -26,7 +26,7 @@ const CHEAP_MODELS = {
   ]
 };
 
-const DEFAULT_MODEL = 'openai/gpt-4o'; // Premium default model
+const DEFAULT_MODEL = 'meta-llama/llama-3.2-3b-instruct:free'; // Free default model
 const DEFAULT_MAX_TOKENS = 200000; // Reduced from 8000 to fit free tier
 
 /**

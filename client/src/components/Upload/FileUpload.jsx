@@ -1,8 +1,18 @@
-// File Upload Component
+// Professional File Upload Component with Material UI
 
 import { useState } from 'react';
 import { FILE_TYPES, MAX_FILE_SIZE } from '../../config/constants.js';
-import './Upload.css';
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Alert,
+  Stack,
+  alpha
+} from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 
 export function FileUpload({ onFileSelect, disabled = false }) {
   const [dragActive, setDragActive] = useState(false);
@@ -84,34 +94,85 @@ export function FileUpload({ onFileSelect, disabled = false }) {
   };
 
   return (
-    <div className="file-upload-container">
-      <div
-        className={`file-upload-area ${dragActive ? 'drag-active' : ''} ${disabled ? 'disabled' : ''}`}
+    <Box>
+      <input
+        type="file"
+        id="file-upload"
+        accept=".pdf,.doc,.docx,.xlsx,.xls,.txt,.rtf,.dwg,.dxf"
+        onChange={handleChange}
+        disabled={disabled}
+        style={{ display: 'none' }}
+      />
+      <Paper
+        component="label"
+        htmlFor="file-upload"
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        sx={{
+          p: 4,
+          border: `2px dashed ${dragActive ? 'primary.main' : 'grey.300'}`,
+          borderRadius: 2,
+          bgcolor: dragActive ? alpha('#1976d2', 0.04) : 'grey.50',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s ease-in-out',
+          textAlign: 'center',
+          opacity: disabled ? 0.6 : 1,
+          '&:hover': {
+            borderColor: disabled ? 'grey.300' : 'primary.main',
+            bgcolor: disabled ? 'grey.50' : alpha('#1976d2', 0.04),
+          },
+        }}
       >
-        <input
-          type="file"
-          id="file-upload"
-          accept=".pdf,.doc,.docx,.xlsx,.xls,.txt,.rtf,.dwg,.dxf"
-          onChange={handleChange}
-          disabled={disabled}
-          style={{ display: 'none' }}
-        />
-        <label htmlFor="file-upload" className="upload-label">
-          <div className="upload-icon">📄</div>
-          <div className="upload-text">
-            <strong>Click to upload</strong> or drag and drop
-          </div>
-          <div className="upload-hint">
-            Engineering documents: PDF, Word, Excel, CAD, Text (Max {MAX_FILE_SIZE / (1024 * 1024)}MB)
-          </div>
-        </label>
-      </div>
-      {error && <div className="upload-error">{error}</div>}
-    </div>
+        <Stack spacing={2} alignItems="center">
+          <Box
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              bgcolor: dragActive ? 'primary.main' : 'grey.200',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease-in-out',
+            }}
+          >
+            <CloudUploadIcon
+              sx={{
+                fontSize: 32,
+                color: dragActive ? 'white' : 'grey.600',
+              }}
+            />
+          </Box>
+          <Box>
+            <Typography variant="h6" fontWeight={600} gutterBottom>
+              {dragActive ? 'Drop file here' : 'Click to upload or drag and drop'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Engineering documents: PDF, Word, Excel, CAD, Text files
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              Maximum file size: {MAX_FILE_SIZE / (1024 * 1024)}MB
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            component="span"
+            startIcon={<InsertDriveFileIcon />}
+            disabled={disabled}
+            sx={{ mt: 1 }}
+          >
+            Browse Files
+          </Button>
+        </Stack>
+      </Paper>
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
+      )}
+    </Box>
   );
 }
 

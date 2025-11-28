@@ -67,13 +67,13 @@ export function Login() {
       }}
     >
       <Paper
-        elevation={6}
+        elevation={8}
         sx={{
           width: '100%',
           maxWidth: 460,
-          borderRadius: 3,
+          borderRadius: 2,
           p: 4,
-          backdropFilter: 'blur(6px)'
+          bgcolor: 'background.paper',
         }}
       >
         <Stack spacing={1}>

@@ -10,7 +10,7 @@ import { UploadDoc } from '../pages/UploadDoc.jsx';
 import { QCReport } from '../pages/QCReport.jsx';
 import { Reports } from '../pages/Reports.jsx';
 import { History } from '../pages/History.jsx';
-import { QwenChat } from '../pages/QwenChat.jsx';
+import { PetroPilot } from '../pages/PetroPilot.jsx';
 
 function ProtectedRoute({ children, requireAdmin = false }) {
   const { user, isAdmin, loading } = useAuth();
@@ -101,7 +101,7 @@ export function AppRoutes() {
         element={
           <ProtectedRoute>
             <LayoutWrapper>
-              <QwenChat />
+              <PetroPilot />
             </LayoutWrapper>
           </ProtectedRoute>
         }

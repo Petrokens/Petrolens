@@ -7,9 +7,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
 import { callOpenRouterAPI, getAPIKey, detectProvider } from '../api/openRouter.js';
 import { extractTextFromFile } from '../utils/documentClassifier.js';
-import './QwenChat.css';
+import './PetroPilot.css';
 
-const SYSTEM_PROMPT = `You are Qwen, a senior engineering QA/QC assistant for Petrolenz. 
+const SYSTEM_PROMPT = `You are Petro Pilot, a senior engineering QA/QC assistant for Petrolenz. 
 - Always produce structured, professional answers with actionable guidance.
 - When documents are attached, summarize key observations before answering questions.
 - Reference engineering standards (NFPA, API, ASME, IEC, etc.) when relevant.
@@ -26,12 +26,12 @@ const QUICK_PROMPTS = [
   'Outline inputs needed before issuing IFR.',
 ];
 
-export function QwenChat() {
+export function PetroPilot() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
       content:
-        "I'm Qwen, your engineering QA/QC co-pilot. Upload deliverables, ask questions, and I'll generate structured reviews, action items, or summaries inspired by the Petrolenz workflow.",
+        "I'm Petro Pilot, your engineering QA/QC co-pilot. Upload deliverables, ask questions, and I'll generate structured reviews, action items, or summaries inspired by the Petrolenz workflow.",
       timestamp: new Date().toISOString()
     }
   ]);
@@ -143,7 +143,7 @@ export function QwenChat() {
         }
       ]);
     } catch (err) {
-      console.error('Qwen chat error:', err);
+      console.error('Petro Pilot chat error:', err);
       setMessages((prev) => [
         ...prev,
         {
@@ -161,12 +161,12 @@ export function QwenChat() {
     <div className="qwen-chat-page">
       <section className="qwen-hero">
         <div>
-          <p className="eyebrow">Qwen AI Workspace · Petrolenz</p>
+          <p className="eyebrow">Petro Pilot Workspace · Petrolenz</p>
           <h1>
-            Engineering QA/QC copiloted <span>by Qwen</span>
+            Engineering QA/QC copiloted <span>by Petro Pilot</span>
           </h1>
           <p className="subtitle">
-            Upload deliverables, ask nuanced questions, and let the Qwen-powered assistant
+            Upload deliverables, ask nuanced questions, and let the Petro Pilot assistant
             craft structured reviews, action lists, and compliance insights—just like the
             real platform.
           </p>
@@ -185,7 +185,7 @@ export function QwenChat() {
         </div>
         <div className="hero-accent-card">
           <p>Live Model</p>
-          <h3>Qwen-Style Assistant</h3>
+          <h3>Petro Pilot Assistant</h3>
           <p className="accent-footnote">
             Powered by OpenRouter · Structured outputs · Document-aware
           </p>
@@ -201,7 +201,7 @@ export function QwenChat() {
                 className={`chat-bubble ${message.role === 'assistant' ? 'assistant' : 'user'}`}
               >
                 <div className="bubble-meta">
-                  <span>{message.role === 'assistant' ? 'Qwen' : 'You'}</span>
+                  <span>{message.role === 'assistant' ? 'Petro Pilot' : 'You'}</span>
                   <span>
                     {new Date(message.timestamp).toLocaleTimeString([], {
                       hour: '2-digit',
@@ -217,7 +217,7 @@ export function QwenChat() {
             {loading && (
               <div className="loading-indicator">
                 <CircularProgress size={20} />
-                <span>Qwen is thinking...</span>
+                <span>Petro Pilot is thinking...</span>
               </div>
             )}
           </div>
@@ -245,7 +245,7 @@ export function QwenChat() {
           <div className="attach-card">
             <h3>Upload Engineering Deliverables</h3>
             <p>
-              Drop PDFs, Word files, or spreadsheets. Qwen converts them to text automatically
+              Drop PDFs, Word files, or spreadsheets. Petro Pilot converts them to text automatically
               (first few thousand characters) and blends them into the next response.
             </p>
             <label className="upload-dropzone">
@@ -292,7 +292,7 @@ export function QwenChat() {
             </div>
             <p className="footnote">
               {typeof MAX_ATTACHMENT_CHARS === 'number'
-                ? `Only the first ${MAX_ATTACHMENT_CHARS.toLocaleString()} characters per file feed Qwen to keep within token limits. Highlight the most critical pages for best answers.`
+                ? `Only the first ${MAX_ATTACHMENT_CHARS.toLocaleString()} characters per file feed Petro Pilot to keep within token limits. Highlight the most critical pages for best answers.`
                 : 'Entire document text is used for analysis. Consider trimming oversized files if you run into token limits.'}
             </p>
           </div>
@@ -300,7 +300,7 @@ export function QwenChat() {
           <div className="prompt-card">
             <h4>Default Prompt (auto-applied)</h4>
             <p>
-              Qwen automatically enforces the Petrolenz QA/QC instructions, referencing NFPA/API/ASME
+              Petro Pilot automatically enforces the Petrolenz QA/QC instructions, referencing NFPA/API/ASME
               and capturing missing data. No manual prompt engineering needed.
             </p>
             <button
